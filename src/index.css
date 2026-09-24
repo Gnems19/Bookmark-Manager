@@ -1,0 +1,114 @@
+:root {
+  font-family: "Segoe UI", sans-serif;
+  line-height: 1.5;
+  color: #1c1917;
+  background: #f6f3ee;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  background: #1c1917;
+  color: #faf7f2;
+}
+
+.header-mark {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #d6d3d1;
+}
+
+.header h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.app-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 0;
+}
+
+.sidebar {
+  padding: 1.5rem 1rem;
+  background: #efeae3;
+  border-right: 1px solid #e7e5e4;
+}
+
+.sidebar-label {
+  margin-bottom: 0.75rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #78716c;
+}
+
+.sidebar li {
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.5rem;
+}
+
+.sidebar li:first-child {
+  background: #ffffff;
+  font-weight: 600;
+}
+
+.app-main {
+  padding: 2rem 1.5rem;
+}
+
+.placeholder {
+  max-width: 36rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.placeholder h2 {
+  font-size: 1.5rem;
+}
+
+.placeholder p {
+  color: #57534e;
+}
+
+@media (max-width: 720px) {
+  .app-body {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid #e7e5e4;
+  }
+}

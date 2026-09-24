@@ -1,412 +1,710 @@
 # Bookmark Manager — Implementation Plan
 
-Saved so we can implement **one step at a time**. Do not start the next step until the current step’s checklist passes in the browser.
+Saved so we can implement **one stage at a time**. The order follows the course guide. The PDF is still the grading checklist.
 
-**Source brief:** React Bookmark Manager (components, props, state, forms, lists, `useEffect`, composition).
+**Brief:** React Bookmark Manager (components, props, state, forms, lists, `useEffect`, composition).
+
+**Guide:** Bookmark Manager Guide — four checkpoints, stages 1–26.
 
 **Design:** [Figma — bookmark-manager-app](https://www.figma.com/design/giO3ChUIk9nSfgzW6aEVh5/bookmark-manager-app?node-id=234-4992)
 
-**Seed data:** [Google Drive folder](https://drive.google.com/drive/folders/1Vefm1LDIQecRTE2brAc8LeZmRUZUb_Vu?usp=sharing) — download into `public/data/bookmarks.json` during Step 3. Do not invent a replacement dataset if the provided file is available.
+**Seed data:** [Google Drive folder](https://drive.google.com/drive/folders/1Vefm1LDIQecRTE2brAc8LeZmRUZUb_Vu?usp=sharing). Used in Stage 18. Until then, a small hardcoded array is enough.
 
-**Current repo:** README only. No app scaffold yet.
+**Current repo:** README and this plan. No app scaffold yet.
+
+---
+
+## Main rule
+
+Do not start the next feature while the current one is unfinished.
+
+- If the list does not render, do not start search.
+- If add does not work, do not start edit.
+- If state updates are wrong, do not start `localStorage`.
+
+A stage starts only after the previous stage runs, has been tried in the browser, and its checklist is done.
+
+While building, keep asking:
+
+- Which component owns this behavior?
+- Which component should hold this state?
+- Which component actually needs this data?
+- Can this value be calculated from state we already have?
+
+---
+
+## Checkpoints
+
+Do not open the next checkpoint until the current one is done.
+
+| Checkpoint | Guide stages | Done when |
+| --- | --- | --- |
+| 1. Static UI, components, list | 1–4 | List is visible, components are reusable, data arrives through props, list uses `.map()` |
+| 2. State and CRUD | 5–13 | Create, read, update, delete, pin, and archive work. Updates are immutable. The form is controlled and validated. |
+| 3. Find, organize, modal | 14–17 | Search, one tag, sort, and pinned-first work together. Modal is reusable. Features do not fight each other. |
+| 4. Load, persist, finish | 18–26 | Fetch, loading, error, `localStorage`, theme, responsive layout, refactor, and the full manual test pass. |
+
+Submission extras from the PDF (README and a deployed URL) are Stage 27, after Checkpoint 4.
 
 ---
 
 ## How we will work
 
-1. Pick the next unchecked step.
-2. Implement only that step.
-3. Run the app and exercise the new behavior (click, type, submit, refresh).
-4. Check the step’s “Done when” list, then move on.
+1. Implement only the next unchecked stage.
+2. Exercise it in the browser: click, type, submit, refresh when that stage cares about refresh.
+3. Mark the stage checklist, then move on.
 
-Visual match to Figma matters, and correct React architecture matters more. Each step should leave the app runnable.
+Visual match to Figma matters. Correct React structure matters more. Each stage should leave the app runnable.
 
 ---
 
 ## Assignment limits
 
-Stay inside these limits for the whole project. They are grading rules.
+These hold for every stage.
 
-- Functional components and JSX only.
-- State with `useState`. Shared data through props and callback props.
-- One wrapper that uses `props.children` (the modal).
-- Lists rendered with `.map()` and a stable `id` as `key`.
-- Add and edit use one controlled form (`value` + `onChange`, `onSubmit` + `preventDefault`).
-- Array and object updates copy data (`map`, `filter`, spread). Never `push`, never `bookmarks[i].title = ...`, never mutate props.
-- Initial bookmarks load with `fetch("/data/bookmarks.json")` inside `useEffect`. Do not import the JSON file as a module.
-- Persist `bookmarks` and `theme` in `localStorage`.
-- Show loading, empty, and error UI with conditional rendering.
+- Functional components and JSX.
+- `useState` for state. Data moves through props and callback props.
+- Lists use `.map()` and `key={bookmark.id}`.
+- One controlled form for add and edit (`value`, `onChange`, `onSubmit`, `preventDefault`).
+- Updates copy data (`map`, `filter`, spread). No `push`, no `bookmarks[i].title = ...`, no mutated props.
+- From Stage 18 on, seed data is `fetch("/data/bookmarks.json")` inside `useEffect`. Do not import the JSON as a module.
+- `localStorage` stores bookmarks and theme (Stage 21 and Stage 22).
+- Loading, empty, and error screens use conditional rendering.
 
-Leave these out. They fail the brief even if they are common in production apps:
+Leave these out. They fail the brief:
 
 - Redux, Zustand, MobX, Recoil, or any other external state library.
 - React Hook Form, Formik, Yup, or Zod.
-- `document.querySelector`, `innerHTML`, `classList`, or `style.display` to drive UI.
+- `document.querySelector`, `innerHTML`, `classList`, or `style.display` to drive the UI.
 - `window.location.reload()` after add, edit, or delete.
 - `key={index}` when a bookmark has an `id`.
-- A single `App.jsx` that contains the whole UI and every handler.
+- One `App.jsx` that holds the whole UI and every handler.
 
-Allowed best practices that still fit the brief: Vite, custom hooks, pure helper functions, CSS variables, semantic HTML, and a small amount of React context only if prop drilling becomes unreadable. Default path is hooks plus props, because the brief grades that explicitly.
+Vite, pure helper functions, and CSS variables are fine. Custom hooks are a Stage 24 refactor, after the behavior already works in the parent. Multiple tag filtering stays a bonus.
 
 ---
 
-## Target architecture
+## Target shape
+
+Folders can appear as each stage needs them. This is the end state, not the Stage 1 requirement.
 
 ```
 bookmark-manager/
 ├── public/
 │   └── data/
-│       └── bookmarks.json          # seed only; fetched, never imported
+│       └── bookmarks.json
 ├── src/
 │   ├── main.jsx
-│   ├── App.jsx                     # shell only: theme + data hook + layout
-│   ├── index.css                   # tokens, reset, light/dark variables
+│   ├── App.jsx
+│   ├── index.css
 │   ├── components/
-│   │   ├── layout/
-│   │   │   ├── Layout.jsx          # children = page content
-│   │   │   ├── Header.jsx
-│   │   │   └── Sidebar.jsx
-│   │   ├── bookmarks/
-│   │   │   ├── BookmarkList.jsx
-│   │   │   ├── BookmarkCard.jsx
-│   │   │   └── TagList.jsx
-│   │   ├── filters/
-│   │   │   ├── SearchBar.jsx
-│   │   │   ├── FilterBar.jsx
-│   │   │   └── SortSelect.jsx
-│   │   ├── form/
-│   │   │   └── BookmarkForm.jsx    # add and edit
-│   │   └── ui/
-│   │       ├── Modal.jsx           # reusable, props.children, no bookmark knowledge
-│   │       ├── ConfirmDialog.jsx
-│   │       ├── EmptyState.jsx
-│   │       └── LoadingState.jsx
-│   ├── hooks/
-│   │   ├── useBookmarks.js         # load, persist, CRUD
-│   │   └── useTheme.js
-│   ├── utils/
-│   │   ├── selectBookmarks.js      # view + search + tag + sort (pure)
-│   │   ├── validateBookmark.js     # pure
-│   │   └── storage.js
-│   └── constants.js
+│   │   ├── layout/        Layout, Header, Sidebar
+│   │   ├── bookmarks/     BookmarkList, BookmarkCard, TagList
+│   │   ├── filters/       SearchBar, FilterBar, SortSelect
+│   │   ├── form/          BookmarkForm
+│   │   └── ui/            Modal, ConfirmDialog, EmptyState, LoadingState
+│   └── utils/
+│       ├── selectBookmarks.js
+│       └── validateBookmark.js
 ├── package.json
 └── README.md
 ```
 
-`App.jsx` renders layout and passes data down. `BookmarksPage` (or the page section inside `App` if it stays thin) owns view UI state: search text, selected tag, sort, active view, which modal is open. Presentational components receive data and callbacks. They do not own the bookmark list.
+`Layout` is the `props.children` wrapper for page content. `Modal` is the `props.children` wrapper for the form. `Modal` must not know what a bookmark is.
 
-### What lives in state
+### State to keep
 
-| State | Owner | Why it is stored |
+Names match the guide. Owners can move during the Stage 24 refactor. Until then they live in the parent that renders the list.
+
+| State | Appears | Role |
 | --- | --- | --- |
-| `bookmarks` | `useBookmarks` | Source of truth |
-| `status` | `useBookmarks` | `loading` / `ready` / `error` |
-| `theme` | `useTheme` | User choice, persisted |
-| `view` | page | `all` or `archived` |
-| `searchTerm` | page | Controlled search input |
-| `selectedTag` | page | `all` or one tag |
-| `sort` | page | `newest`, `oldest`, `az`, `za` |
-| `formMode` | page | closed, add, or edit |
-| `editingId` | page | Which bookmark the form edits |
-| `confirmId` | page | Delete confirmation target |
+| `bookmarks` | Stage 5 | Source of truth |
+| `activeView` | Stage 8 | `"all"` or `"archived"` |
+| `editingBookmark` | Stage 13 | The bookmark being edited, or `null` for add |
+| `isModalOpen` | Stage 14 | Modal visibility |
+| `searchTerm` | Stage 15 | Controlled search |
+| `selectedTag` | Stage 16 | `"all"` or one tag |
+| `sortBy` | Stage 17 | `"newest"`, `"oldest"`, `"az"`, `"za"` |
+| `isLoading` | Stage 19 | Initial fetch |
+| `error` | Stage 19 | Initial fetch failure |
+| `theme` | Stage 22 | `"light"` or `"dark"` |
 
-### What is derived during render
+Delete confirmation can use a `bookmarkToDelete` value (the bookmark, or `null`). That is the PDF’s preferred confirm step inside Stage 12.
 
-Do not store these in state:
+### Do not store
 
-- Visible list (view + search + tag + sort + pinned-first).
-- Tag options for the filter bar.
-- Whether the current screen is an empty list, an empty search, or an empty archive.
-- Domain label parsed from a bookmark URL.
+Calculate these while rendering:
 
-```js
-const visibleBookmarks = selectBookmarks(bookmarks, {
-  view,
-  searchTerm,
-  selectedTag,
-  sort,
-});
+- `filteredBookmarks`, `searchedBookmarks`, `sortedBookmarks`
+- Tag options for the filter bar
+- Which empty state to show
+- The domain label parsed from a URL
+
+Pipeline, in this order:
+
+```
+bookmarks
+  → active or archived
+  → search
+  → tag filter
+  → sort
+  → pinned first
+  → render
 ```
 
-### Bookmark shape
+Pinned-first is a stable split after sort: pinned items keep the sort order and move to the top. Unpinned items keep the sort order below them.
 
-Normalize seed data into this shape once, at load time. If the Drive file uses different field names, map them in one function and keep the rest of the app on this shape.
+### Bookmark object
 
 ```js
 {
-  id: "stable-id",
-  title: "React Docs",
+  id: 1,
+  title: "React Documentation",
   url: "https://react.dev",
-  description: "",
-  tags: ["react"],
-  isPinned: false,
+  description: "Official React documentation",
+  tags: ["React", "Frontend"],
+  isPinned: true,
   isArchived: false,
-  createdAt: "2026-09-01T10:00:00.000Z"
+  createdAt: "2026-09-01T10:00:00.000Z",
 }
 ```
 
-New bookmarks get `crypto.randomUUID()` and a `createdAt` timestamp. Edits keep the same `id` and `createdAt`.
+New bookmarks use `id: Date.now()`, `isPinned: false`, `isArchived: false`, and `createdAt: new Date().toISOString()`. Edits keep the same `id` and `createdAt`.
 
-### Sort and pin rule
+### localStorage rule (Stage 21)
 
-Pinned bookmarks always render before unpinned ones. Inside each group, apply the selected sort:
+Do not add this before CRUD and search already work.
 
-- `newest` / `oldest` by `createdAt`
-- `az` / `za` by title, case-insensitive
+1. On start, look in `localStorage`.
+2. If saved bookmarks exist, use them.
+3. If they do not, `fetch("/data/bookmarks.json")`.
+4. Either way, `setBookmarks` with the result.
 
-### localStorage rule
+Write bookmarks back only after the initial load has finished, so the first empty render cannot wipe saved data. A short `setTimeout` around the load (cleared in the effect cleanup) keeps the loading state visible, which the PDF asks for.
 
-Two effects, with a guard so the first render cannot wipe saved data:
+Theme: read the saved value when `theme` state is created, then write it and set `document.documentElement.dataset.theme` in an effect.
 
-1. On mount: wait briefly (`setTimeout`, cleared on cleanup), then read storage. If bookmarks exist, use them. If not, `fetch("/data/bookmarks.json")`, normalize, and store. Then set `status` to `ready`. On failure, set `status` to `error`.
-2. When `bookmarks` changes: write to `localStorage` only if `status === "ready"`.
+Keys: `bookmark-manager:bookmarks`, `bookmark-manager:theme`.
 
-Theme: initialize from `localStorage` with a lazy `useState` initializer so the first paint matches the saved theme. A separate effect writes the theme and sets `document.documentElement.dataset.theme`.
-
-Storage keys: `bookmark-manager:bookmarks`, `bookmark-manager:theme`.
-
-### Validation rule
-
-Checked on submit. A failed check does not update bookmarks. Errors render next to the fields.
+### Validation (Stage 11, only after add already works)
 
 | Field | Rule | Message |
 | --- | --- | --- |
-| Title | Required, trimmed | Title is required |
+| Title | Required after trim | Title is required |
 | URL | Required, `http` or `https` via `new URL()` | Please enter a valid URL |
 | Description | Optional | — |
-| Tags | At least one, after trim | At least one tag is required |
+| Tags | At least one | At least one tag is required |
 
-Tags are entered as chips (type, then Enter or comma). Compare tags case-insensitively so `React` and `react` do not become two filters.
-
----
-
-## Steps
-
-### Step 1 — Scaffold the Vite app
-
-Create a Vite React app in this repository (JavaScript, `.jsx`, matching the brief).
-
-- Add the folder tree above as empty placeholders where that helps.
-- Keep ESLint with the React Hooks plugin so dependency arrays stay honest.
-- Confirm `npm run dev` and `npm run build` succeed.
-- Ignore `node_modules` and `dist`.
-
-**Done when**
-
-- [ ] Dev server opens a blank React page with no console errors.
-- [ ] Production build completes.
-- [ ] `App.jsx` is a short shell, not the future UI.
+A failed check does not change `bookmarks`. Show the message on that field.
 
 ---
 
-### Step 2 — Layout shell and design tokens
+## Checkpoint 1 — Static UI, components, list
 
-Build the static chrome before bookmark behavior: page regions, type, color, spacing.
+### Stage 1 — Create the React project
 
-- CSS variables for color, space, radius, and type.
-- Light theme variables on `:root`. Dark theme variables on `[data-theme="dark"]` (toggle comes in Step 10; tokens exist now).
-- `Layout` uses `props.children` for the main area.
-- `Header`: app title, theme control placeholder.
-- `Sidebar`: All Bookmarks and Archived, not wired yet.
-- Main area: slots for search, filters, sort, and the list.
-- `Modal` accepts `title`, `onClose`, and `children`, and renders nothing about bookmarks. It can stay closed until Step 6.
-- Match the Figma file for spacing, type, and color as closely as view access allows. If Figma access is still blocked, build a clean structure and restyle when the file is shared.
+Create the app with Vite, JavaScript, and `.jsx`.
+
+- Remove the Vite demo content.
+- Add `src/components/`.
+- Do not add fetch, forms, `localStorage`, filters, or sorting yet.
 
 **Done when**
 
-- [ ] Desktop layout shows header, sidebar, and main region.
-- [ ] Narrow viewport still shows every region (stacked or scrollable is enough for this step).
-- [ ] No bookmark logic yet.
+- [x] The app runs with no errors.
+- [x] `App.jsx` renders.
+- [x] `components` exists and the first layout files are in place.
+- [x] The console has no serious React errors.
 
 ---
 
-### Step 3 — Load seed data, then persist it
+### Stage 2 — Static layout
 
-This step is read-only data. No add/edit/delete yet.
+Match the Figma structure: header, sidebar, main content, a search field, a filter area, and one bookmark card drawn in JSX.
 
-- Place the provided file at `public/data/bookmarks.json`.
-- `useBookmarks` loads it with the effect pattern in the localStorage rule.
-- Show `LoadingState` while `status === "loading"`.
-- Show an error message with a retry path if fetch or JSON parse fails.
-- After a successful first load, refresh the page and confirm the list comes from `localStorage`, not a second fetch (check the network panel).
-- Render a temporary dump of titles so we can see data before the real cards exist.
+Hardcode that sample card. Do not use state, `.map()`, fetch, or a form yet.
+
+If Figma is still not shared with this account, build the regions from the brief and restyle when the file is viewable.
 
 **Done when**
 
-- [ ] First visit shows a loading state, then data.
-- [ ] Refresh restores the same bookmarks.
-- [ ] Clearing `localStorage` and refreshing loads the seed file again.
-- [ ] The JSON file is fetched, not imported.
-- [ ] The loading effect cleans up its timeout.
+- [ ] Header, sidebar, and main content are separate components.
+- [ ] A bookmark card’s visual structure exists.
+- [ ] The layout is close to the design.
+- [ ] You can name what each component is responsible for.
 
 ---
 
-### Step 4 — Bookmark list and cards
+### Stage 3 — BookmarkCard
 
-Replace the temporary dump with real components.
+`BookmarkCard` receives one `bookmark` prop and renders title, URL, description, and tags. It contains no hardcoded bookmark of its own.
 
-- `BookmarkList` maps bookmarks to `BookmarkCard`.
-- `key={bookmark.id}`.
-- Each card shows title, URL or domain, description, tags (`TagList`), and disabled-looking action buttons for pin, edit, archive, and delete (wired in later steps).
-- Cards are presentational: `bookmark` plus callback props.
+```jsx
+<BookmarkCard bookmark={bookmark} />
+```
 
 **Done when**
 
-- [ ] Every seed bookmark renders as a card.
-- [ ] React DevTools shows no missing-key warning.
-- [ ] Actions do not mutate data yet.
+- [ ] `BookmarkCard` is its own component.
+- [ ] Data arrives only through props.
+- [ ] The same component renders different bookmark objects.
+- [ ] Title, URL, description, and tags show correctly.
 
 ---
 
-### Step 5 — Search, tags, sort, and the two views
+### Stage 4 — Render the list
 
-Add the derived pipeline. Still no create/update/delete.
+Hold a small array (still a constant, not state) and render it with `BookmarkList`.
 
-- `SearchBar` is a controlled input. Match title and description, case-insensitive, as the user types.
-- `FilterBar` lists `All` plus tags derived from bookmarks in the current view.
-- `SortSelect` offers Newest, Oldest, A–Z, and Z–A (two are required; ship all four).
-- Sidebar switches `view` between all and archived.
-- All Bookmarks hides archived items. Archived shows only archived items.
-- Pinned items stay at the top inside the active sort.
-- `EmptyState` for: no search matches, empty archive, and a completely empty active list.
+```jsx
+bookmarks.map((bookmark) => (
+  <BookmarkCard key={bookmark.id} bookmark={bookmark} />
+))
+```
 
 **Done when**
 
-- [ ] Typing filters the list immediately.
-- [ ] A tag shows only bookmarks with that tag. All clears it.
-- [ ] Changing sort reorders the list, with pinned items first.
-- [ ] Archived view and All Bookmarks show disjoint sets.
-- [ ] Each empty case shows a message, not a blank panel.
-- [ ] Filtered results are not stored in state.
+- [ ] Several bookmarks render.
+- [ ] The list uses `.map()`.
+- [ ] Each card’s key is `bookmark.id`, not the array index.
+- [ ] `BookmarkList` and `BookmarkCard` are separate components.
+
+**Checkpoint 1 gate:** list visible, reusable components, props, `.map()`.
 
 ---
 
-### Step 6 — Add a bookmark
+## Checkpoint 2 — State and CRUD
 
-- Open `Modal` with `BookmarkForm` as `children`.
-- Controlled fields: title, URL, description, tags.
-- Submit validates with `validateBookmark`. Errors sit on the fields. Invalid submit leaves state unchanged.
-- Valid submit appends a new object (`[...bookmarks, next]`) and closes the modal.
-- The new card appears without a reload.
-- Because Step 3 already persists on change, refresh keeps the new bookmark.
+### Stage 5 — Move bookmarks into state
+
+```js
+const [bookmarks, setBookmarks] = useState(initialBookmarks);
+```
+
+From here, every change goes through the setter.
 
 **Done when**
 
-- [ ] Empty title, bad URL, and missing tag each show the required message.
-- [ ] A valid bookmark appears at the correct position for the current sort and pin rule.
+- [ ] Bookmarks live in state.
+- [ ] The UI renders from that state.
+- [ ] Nothing uses `push` or assigns a field on an existing object.
+- [ ] A state update refreshes the UI by itself.
+
+---
+
+### Stage 6 — Empty state
+
+When `bookmarks` is empty, render an empty state instead of a blank panel. A reusable `EmptyState` is appropriate. Copy can be: “You don't have any bookmarks yet.”
+
+**Done when**
+
+- [ ] An empty array shows no cards.
+- [ ] The empty state is conditional.
+- [ ] The main area is not a blank gap.
+
+---
+
+### Stage 7 — Pin / Unpin
+
+Each card gets a pin action. Toggle `isPinned` with `map` and a spread. Leave every other bookmark untouched. The card shows the pinned state visually.
+
+Handler name: `handleTogglePin`.
+
+**Done when**
+
+- [ ] Every bookmark can be pinned and unpinned.
+- [ ] Only that bookmark’s object changes.
+- [ ] The update is immutable.
+- [ ] The UI shows which cards are pinned.
+
+Pinned items do not have to jump to the top yet. That is Stage 17.
+
+---
+
+### Stage 8 — Archive / Restore
+
+Add `activeView` with two sidebar entries: All Bookmarks and Archived.
+
+- Archive sets `isArchived: true`. Those cards leave All Bookmarks.
+- Archived shows only archived bookmarks and can restore them.
+- Restore sets `isArchived: false` and keeps the other fields.
+
+An empty archived view needs its own empty message (refined again in Stage 23).
+
+**Done when**
+
+- [ ] Archive removes the card from All Bookmarks.
+- [ ] Archived shows only archived bookmarks.
+- [ ] Restore puts the same bookmark back on the main list.
+
+---
+
+### Stage 9 — Add form, on the page
+
+Build `BookmarkForm` in the page first. Modal comes in Stage 14, after add and edit already work.
+
+Fields: title, URL, description, tags. All controlled. Submit with `onSubmit` and `preventDefault`. A valid submit appends a bookmark and the new card appears with no reload.
+
+**Done when**
+
+- [ ] Every input is tied to state.
+- [ ] `onChange` updates that state.
+- [ ] `onSubmit` and `preventDefault` run.
+- [ ] The new bookmark appears without a reload.
+
+---
+
+### Stage 10 — Build the new object
+
+```js
+const newBookmark = {
+  id: Date.now(),
+  title: form.title.trim(),
+  url: form.url.trim(),
+  description: form.description.trim(),
+  tags: form.tags,
+  isPinned: false,
+  isArchived: false,
+  createdAt: new Date().toISOString(),
+};
+```
+
+Add it with a new array: `[...bookmarks, newBookmark]`.
+
+**Done when**
+
+- [ ] The id is unique.
+- [ ] `isPinned` and `isArchived` start as `false`.
+- [ ] The object is appended immutably.
+
+---
+
+### Stage 11 — Validation
+
+Add validation only after add already succeeds. Use the rules in the validation table. An invalid form does not update `bookmarks`, and the message shows on the field.
+
+**Done when**
+
+- [ ] An empty title does not submit.
+- [ ] An invalid URL does not submit.
+- [ ] A form with no tags does not submit.
+- [ ] Each case shows its message.
+- [ ] Valid data still adds a bookmark.
+
+---
+
+### Stage 12 — Delete
+
+`handleDeleteBookmark` removes by id with `filter`. It does not use the array index or reload the page.
+
+The PDF also wants a confirmation before delete. After the filter delete works, ask with a reusable `ConfirmDialog` (message plus confirm and cancel callbacks). Do not use `window.confirm`. This also covers the custom-confirm bonus.
+
+**Done when**
+
+- [ ] The chosen bookmark is removed and the others stay.
+- [ ] Removal uses `filter` on `id`.
+- [ ] The UI updates with no reload.
+- [ ] Confirm deletes, cancel leaves the list as it was.
+
+---
+
+### Stage 13 — Edit
+
+Edit stores the chosen bookmark in `editingBookmark` and fills the same `BookmarkForm`. Save replaces that id with `map` and a spread. It must not create a second bookmark.
+
+Handler name: `handleEditBookmark`.
+
+**Done when**
+
+- [ ] Edit shows the current title, URL, description, and tags.
+- [ ] Save updates that bookmark.
+- [ ] The list length stays the same.
+- [ ] Add and edit share one form.
+
+**Checkpoint 2 gate:** CRUD works, updates are immutable, the form is controlled, validation blocks bad submits.
+
+---
+
+## Checkpoint 3 — Find, organize, modal
+
+### Stage 14 — Move the form into a Modal
+
+Do this only after add and edit work on the page.
+
+```jsx
+<Modal>
+  <BookmarkForm />
+</Modal>
+```
+
+`isModalOpen` controls visibility. Close is a callback. `Modal` only provides the frame and `children`. The same modal must be able to host other content later (the confirm dialog can use it too).
+
+**Done when**
+
+- [ ] Add and edit open inside the modal.
+- [ ] Open and close go through state.
+- [ ] `Modal` uses `props.children`.
+- [ ] `Modal` is not tied to bookmark fields.
+
+---
+
+### Stage 15 — Search
+
+```js
+const [searchTerm, setSearchTerm] = useState("");
+```
+
+Match title and description as the user types. Compare case-insensitively. Do not store the search results in state.
+
+If nothing matches, show an empty state. That message is different from “You don't have any bookmarks yet.”
+
+**Done when**
+
+- [ ] The search input is controlled.
+- [ ] Results update while typing.
+- [ ] Title and description both match.
+- [ ] No matches shows an empty state.
+
+---
+
+### Stage 16 — Filter by one tag
+
+`selectedTag` is `"all"` or one tag. Options are `All` plus tags derived from the current view. One tag at a time. Multiple tags stay a bonus.
+
+Search and the tag filter both apply. A bookmark must pass both.
+
+**Done when**
+
+- [ ] The selected tag is state.
+- [ ] Only bookmarks with that tag show.
+- [ ] All shows every bookmark in the current view.
+- [ ] Search and the tag filter work together.
+
+---
+
+### Stage 17 — Sort, then pinned first
+
+The PDF requires at least two sorts. Ship Newest, Oldest, A–Z, and Z–A as `sortBy`.
+
+Then apply the pipeline order: view, search, tag, sort, pinned first. Pin and unpin still only toggle `isPinned`. The list order is derived.
+
+**Done when**
+
+- [ ] Changing sort reorders the list.
+- [ ] Pinned bookmarks render first.
+- [ ] Unpinned bookmarks stay below them.
+- [ ] Pin, search, filter, and sort still agree after each action.
+
+**Checkpoint 3 gate:** search, tag filter, sort, and pinned-first all work, and the modal is reusable.
+
+---
+
+## Checkpoint 4 — Load, persist, finish
+
+### Stage 18 — Move seed data into JSON
+
+Put the starting bookmarks in `public/data/bookmarks.json`. Remove any direct JavaScript import of that data. The file is valid JSON, and every object has the bookmark fields.
+
+The in-memory array can remain as a temporary fallback until Stage 19 fetches the file.
+
+**Done when**
+
+- [ ] Seed data lives in `public/data/bookmarks.json`.
+- [ ] The app does not import that file as a module.
+- [ ] The JSON is valid and every bookmark has the required fields.
+
+---
+
+### Stage 19 — Fetch on mount
+
+```js
+useEffect(() => {
+  // fetch("/data/bookmarks.json")
+}, []);
+```
+
+Fetch once, after mount, not in the component body. Store the result with `setBookmarks`. Track `isLoading` and `error`.
+
+**Done when**
+
+- [ ] Data loads with `fetch`.
+- [ ] The request runs from `useEffect` after mount.
+- [ ] It runs once on the initial load.
+- [ ] The result is stored in state.
+
+---
+
+### Stage 20 — Loading, success, and error
+
+While `isLoading` is true, show “Loading bookmarks...” or `LoadingState`. On failure, show “Something went wrong while loading bookmarks.” On success, show the list. Loading disappears after success or failure.
+
+Use a short timeout in the load effect, cleared on cleanup, so the loading state is actually visible. The PDF asks for that.
+
+**Done when**
+
+- [ ] Loading shows during the fetch.
+- [ ] Success shows the list.
+- [ ] A failed fetch shows the error message.
+- [ ] Loading is gone after either result.
+
+---
+
+### Stage 21 — localStorage
+
+`bookmarks.json` is only the seed.
+
+```
+App starts
+  → check localStorage
+      → saved data exists → use it
+      → nothing saved → fetch JSON
+  → setBookmarks
+```
+
+Follow the localStorage rule above so a refresh restores added, edited, deleted, pinned, and archived bookmarks.
+
+**Done when**
+
+- [ ] Startup checks `localStorage`.
+- [ ] Saved data is used when it exists.
+- [ ] Missing data falls back to the JSON fetch.
+- [ ] The loaded array is what React renders.
+- [ ] Refresh restores the previous bookmarks.
+
+---
+
+### Stage 22 — Theme
+
+Light and dark are `theme` state. Switching updates the CSS variables through `data-theme` and saves the choice. Refresh restores it.
+
+If nothing is saved yet, follow `prefers-color-scheme`, then let an explicit toggle overwrite that and persist.
+
+**Done when**
+
+- [ ] Light mode and dark mode both work.
+- [ ] Theme is state.
+- [ ] The choice is in `localStorage`.
 - [ ] Refresh keeps it.
-- [ ] `preventDefault` is used. The page does not reload on submit.
+- [ ] Reload does not flash the wrong theme.
 
 ---
 
-### Step 7 — Edit a bookmark
+### Stage 23 — All UI states together
 
-- Edit opens the same form, prefilled from the selected bookmark.
-- Save replaces that item with `map` and an object spread. Same `id`. No second bookmark.
-- Cancel closes the modal and discards draft state.
+Walk every state and give it a real screen:
+
+- Initial loading
+- Fetch error
+- No bookmarks
+- No search results
+- No archived bookmarks
+- Modal open and closed
+- Validation errors
 
 **Done when**
 
-- [ ] The form shows the current title, URL, description, and tags.
-- [ ] Save updates the card in place.
-- [ ] The bookmark count does not increase.
-- [ ] Original objects in the previous state array are not mutated (update via copy).
+- [ ] Each of those has its own UI.
+- [ ] The user never hits a blank, unexplained screen.
+- [ ] Switching between them is conditional and easy to follow.
 
 ---
 
-### Step 8 — Delete with confirmation
+### Stage 24 — Refactor
 
-- Delete opens `ConfirmDialog` (reusable, `children` or a message prop plus confirm/cancel callbacks).
-- Confirm removes the bookmark with `filter`.
-- Cancel leaves the list unchanged.
-- This covers the preferred confirmation behavior and bonus item “custom confirm modal”.
+No new features. Split anything that has piled into `App.jsx`. One form only. Drop state that can be derived. Rename handlers so they say what they do: `handleDeleteBookmark`, `handleEditBookmark`, `handleTogglePin`.
 
 **Done when**
 
-- [ ] Delete asks first.
-- [ ] Confirm removes the card with no reload.
-- [ ] Refresh does not bring it back.
-- [ ] `window.confirm` is not used.
+- [ ] `App.jsx` is not the whole application.
+- [ ] Reusable pieces are extracted.
+- [ ] Add and edit are not two copies of the form.
+- [ ] Handler names are specific.
+- [ ] State holds only source data, not derived lists.
 
 ---
 
-### Step 9 — Pin, archive, and restore
+### Stage 25 — Responsive layout
 
-- Pin and unpin update one bookmark immutably. The card shows a clear pinned state.
-- Archive sets `isArchived` and removes the card from All Bookmarks.
-- Archived view lists it and offers Restore.
-- Restoring returns it to All Bookmarks and keeps pin, tags, and the rest of the fields.
+Do this after the features work. Check desktop, tablet, and a phone width.
+
+- Desktop: sidebar stays visible.
+- Smaller widths: sidebar opens as a drawer or panel from the header, then closes.
+- Content is not clipped. Buttons and the form stay usable.
+- Bring spacing and type closer to Figma on each width.
 
 **Done when**
 
-- [ ] Pinned cards sit above unpinned cards in both sort modes.
-- [ ] Archived cards disappear from All Bookmarks.
-- [ ] Restore puts the same bookmark back.
-- [ ] Empty archive and empty active list still render their empty states.
+- [ ] The app is usable at desktop, tablet, and mobile widths.
+- [ ] Nothing important is cut off.
+- [ ] Buttons and the form can be used.
+- [ ] Mobile navigation opens and closes.
+- [ ] The layout is close to the design.
 
 ---
 
-### Step 10 — Light and dark theme
+### Stage 26 — Final manual test
 
-- Header toggle flips `theme` state.
-- `data-theme` switches the CSS variables from Step 2.
-- Choice is saved and restored on refresh.
-- First visit with no saved theme follows `prefers-color-scheme`, then any explicit toggle wins and is stored.
+```
+Open app
+  → initial data loads
+  → add
+  → edit
+  → pin
+  → archive
+  → restore
+  → search
+  → filter
+  → sort
+  → delete
+  → refresh
+  → bookmarks and theme are still there
+```
+
+Also try an invalid form, an empty search, and an empty archive.
 
 **Done when**
 
-- [ ] Both themes are readable (text, cards, form, modal, empty states).
-- [ ] Refresh keeps the chosen theme.
-- [ ] No flash of the wrong theme on reload.
+- [ ] Add, edit, delete, pin, archive, restore, search, filter, and sort work.
+- [ ] Validation blocks bad submits.
+- [ ] Fetch, loading, and error behave.
+- [ ] Bookmarks and theme survive refresh.
+- [ ] The console has no serious errors.
+- [ ] Refresh does not break a feature.
+
+**Checkpoint 4 gate:** load, persistence, theme, responsive layout, refactor, and the manual test are done.
 
 ---
 
-### Step 11 — Responsive pass
+### Stage 27 — README and deploy
 
-Acceptance requires a usable desktop and mobile UI.
+The PDF submission needs a working deploy and a README. The guide’s stages stop at testing.
 
-- Desktop: persistent sidebar.
-- Mobile: sidebar becomes a drawer or full-screen panel opened from the header. This is bonus item “responsive sidebar”; include it here because the acceptance bar is usability on both sizes.
-- Cards, form, and filters wrap without horizontal overflow.
-- Buttons and inputs stay large enough to tap.
+- README: what the app does, the feature list, the stack (React, Vite), and how to run it (`npm install`, `npm run dev`).
+- Deploy the static build (Vercel or GitHub Pages). Set Vite `base` if GitHub Pages needs it.
+- Optional small bonus while touching effects: set `document.title` from the visible count, for example `Bookmarks (12)`.
 
 **Done when**
 
-- [ ] At a desktop width, sidebar and list are visible together.
-- [ ] At a phone width, navigation opens and closes, and add/edit/delete/search still work.
-- [ ] Light and dark still hold on both widths.
+- [ ] README matches the app.
+- [ ] The deployed URL loads, persists data in that browser, and has no serious console errors.
+- [ ] The acceptance checklist at the bottom of this file is checked locally and on the deploy.
 
 ---
 
-### Step 12 — Finish, document, deploy
+## Bonus (after Stage 27)
 
-- Browser tab title via `useEffect`, for example `Bookmarks (12)`, using the active-list count. Cleanup is unnecessary if the effect only sets `document.title`. This is a small bonus and a real `useEffect` use.
-- README: what the app does, feature list, stack (React, Vite), and local run steps (`npm install`, `npm run dev`).
-- Deploy a static build (Vercel or GitHub Pages). Set Vite `base` if GitHub Pages needs it.
-- Click through the acceptance checklist at the bottom of this file on the deployed URL and locally.
+1. **Favorites** — `isFavorite` plus a Favorites view, same immutable update.
+2. **Multiple tags** — only after single-tag filtering works. Pick one rule (every selected tag, or any selected tag) and show it in the UI. All clears the selection.
+3. **Live clock** — `setInterval` in the header with a cleanup return. A “last change” label can be derived from timestamps with no interval.
+4. **document.title** — if it was not done in Stage 27.
 
-**Done when**
-
-- [ ] README matches the running app.
-- [ ] Deployed URL loads, persists data in that browser, and has no React errors in the console.
-- [ ] Repository contains the project, the plan, and the README.
-
----
-
-## Bonus steps (after Step 12)
-
-Only after the core checklist is green.
-
-1. **Favorites** — `isFavorite` on the bookmark, a Favorites view, same immutable update pattern.
-2. **Multiple tag filter** — `selectedTags` array. A bookmark matches if it contains every selected tag (or any selected tag; pick one rule and show it in the UI). `All` clears the array.
-3. **Live clock or last change** — clock in the header with `setInterval` and a cleanup return. Last change can be derived from the newest `createdAt` / `updatedAt` without an interval.
-4. **document.title** — if it was deferred from Step 12.
+Custom confirm is already part of Stage 12. Responsive sidebar is already part of Stage 25.
 
 ---
 
 ## Acceptance checklist
 
-Use this at the end of Step 12. It mirrors the brief.
+Use this at the end of Stage 27. It mirrors the PDF.
 
 ### Application
 
