@@ -6,11 +6,11 @@ Saved so we can implement **one stage at a time**. The order follows the course 
 
 **Guide:** Bookmark Manager Guide — four checkpoints, stages 1–26.
 
-**Design:** [Figma — bookmark-manager-app](https://www.figma.com/design/giO3ChUIk9nSfgzW6aEVh5/bookmark-manager-app?node-id=234-4992)
+**Design:** [Figma — bookmark-manager-app (accessible copy)](https://www.figma.com/design/0sfbYY47UmL5aPw9yUINTt/bookmark-manager-app--Copy-?node-id=234-4881)
 
 **Seed data:** [Google Drive folder](https://drive.google.com/drive/folders/1Vefm1LDIQecRTE2brAc8LeZmRUZUb_Vu?usp=sharing). Used in Stage 18. Until then, a small hardcoded array is enough.
 
-**Current repo:** README and this plan. No app scaffold yet.
+**Current repo:** Stage 2 static layout implemented from the accessible Figma copy. Production build and lint pass; original assets and fonts are stored locally. Browser visual review remains pending because no browser is connected.
 
 ---
 
@@ -228,10 +228,12 @@ If Figma is still not shared with this account, build the regions from the brief
 
 **Done when**
 
-- [ ] Header, sidebar, and main content are separate components.
-- [ ] A bookmark card’s visual structure exists.
+- [x] Header, sidebar, and main content are separate components.
+- [x] A bookmark card’s visual structure exists.
 - [ ] The layout is close to the design.
-- [ ] You can name what each component is responsible for.
+- [x] You can name what each component is responsible for.
+
+Stage 2 notes: `Header` holds search, add, and profile controls; `Sidebar` holds app identity, library views, and tag filters; `Layout` wraps page content through `children`; `App` holds the heading, sort control, and one hardcoded Frontend Mentor card. Styling follows Desktop - Home - Light (`234:4881`) using React and plain CSS. Icons and images are in `public/design`; Manrope and Roboto fonts are bundled through Fontsource. Tag counts and card metadata are static design samples, and controls are disabled until their behavior stages. Build, lint, and asset checks pass. Browser visual verification is pending because no browser is connected. Do not start Stage 3 until that review is complete.
 
 ---
 
